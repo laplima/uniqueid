@@ -5,6 +5,7 @@
 #include <string>
 #include <regex>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 using namespace colibry;
@@ -45,7 +46,7 @@ int main(int argc, char* argv[])
 		UIDGen::UniqueIDGen_var uid = UIDGen::UniqueIDGen::_nil();
 
 		if (ns_name != nullptr)
-			uid = NameServer::Instance()->resolven<UIDGen::UniqueIDGen>(ns_name);
+			uid = NameServer::Instance(orbm.orb())->resolven<UIDGen::UniqueIDGen>(ns_name);
 		else
 			uid = orbm.string_to_object<UIDGen::UniqueIDGen>(string{"file://"} + iorfile);
 
@@ -59,15 +60,18 @@ int main(int argc, char* argv[])
 			 << "s = shutdown" << endl
 			 << "<ENTER> = exit" << endl << endl;
 
+		vector<UIDGen::ID_t> ids;
 		string cmd;
 		cout << "> ";
 		getline(cin, cmd);
 		while (!cmd.empty()) {
 			auto tks = split(cmd);
 
-			if (tks[0] == "g")
-				cout << "\t" << uid->getuid() << endl;
-			else if (tks[0] == "p") {
+			if (tks[0] == "g") {
+				auto v = uid->getuid();
+				cout << "\t" << v << endl;
+				ids.push_back(v);
+			} else if (tks[0] == "p") {
 				if (tks.size() < 2)
 					cerr << "\tmissing id" << endl;
 				else {
@@ -75,6 +79,7 @@ int main(int argc, char* argv[])
 						UIDGen::ID_t v = stoi(tks[1]);
 						uid->putback(v);
 						cout << "\t" << v << " put back" << endl;
+						ids.erase(find(ids.begin(), ids.end(), v));
 					} catch (const UIDGen::InvalidID&) {
 						cerr << "\tInvalid ID" << endl;
 					}
@@ -88,7 +93,12 @@ int main(int argc, char* argv[])
 			getline(cin, cmd);
 		}
 
-		cout << "Terminating" << endl;
+		cout << "Terminating" << flush;
+		for (auto v : ids) {
+			uid->putback(v);
+			cout << " " << v << flush;
+		}
+		cout << endl;
 
 	} catch (CORBA::Exception& e) {
 		cerr << "CORBA exception: " << e << endl;

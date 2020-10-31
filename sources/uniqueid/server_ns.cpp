@@ -16,7 +16,9 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-NameServer* gNS = nullptr;
+namespace global {
+	NameServer* ns = nullptr;
+}
 
 char* out_iorfile = nullptr;
 char* ns_name = nullptr;
@@ -57,8 +59,8 @@ int main(int argc, char* argv[])
 		// - get naming context
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-		    gNS = NameServer::Instance();
-		    gNS->bind(ns_name,uidgen.in());
+		    global::ns = NameServer::Instance(orbm.orb());
+		    global::ns->bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
 		    cerr << "NAME ALREADY BOUND!" << endl;
@@ -86,9 +88,9 @@ int main(int argc, char* argv[])
 		    unlink(out_iorfile); // remove ior file
 		    cout << "OK" << endl;
 	    }
-	    if (gNS != nullptr) {
+	    if (global::ns != nullptr) {
 			cout << "unbinding name..." << flush;
-	        gNS->unbind(ns_name);
+	        global::ns->unbind(ns_name);
 		    cout << "OK" << endl;
 	    }
 
