@@ -1,0 +1,17 @@
+// Unique ID generator
+// (C) Luiz A. de P. Lima Jr.
+
+module UIDGen {
+
+    typedef long ID_t;
+
+    exception InvalidID {};
+
+    interface UniqueIDGen {
+        ID_t getuid();
+        void putback(in ID_t id) raises (InvalidID);
+        void reset();
+        oneway void shutdown();
+    };
+
+};

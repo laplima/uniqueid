@@ -1,0 +1,103 @@
+#
+# CORBA Makefile
+# (C) 2011 LAPLJ
+#
+
+#
+# Parameters.
+#
+
+PROJECT = uniqueid
+ISSERVER = true
+
+IDL.idl = UniqueIDGen.idl
+COMMON.cpp = NameServer.cpp
+SOURCES.cpp = \
+	UniqueIDGenImpl.cpp \
+	server_ns.cpp
+
+BINDIR = ../bin
+IDLDIR = ../idl
+COMMONDIR = ../common
+COLIBRYDIR = ../../colibry
+
+INCLUDES = $(IDLDIR) $(ACE_ROOT) $(TAO_ROOT) $(TAO_ROOT)/orbsvcs $(COMMONDIR) \
+	$(COLIBRYDIR)/include
+LIBRARIES = ACE TAO TAO_CosNaming TAO_AnyTypeCode TAO_IORTable colibry readline pthread
+LIB_DIRS  = $(ACE_ROOT)/lib $(COLIBRYDIR)/lib
+
+# Darwin/Linux C++ compiler and specificities
+
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	CC = g++
+	RED = \e[0;31m
+	WHITE = \e[0;37m
+	DEFC = \e[0m
+	MYECHO = echo -e
+else ifeq ($(UNAME), Darwin)
+	CC = clang++
+	RED =
+	WHITE =
+	DEFC =
+	MYECHO = echo
+endif
+
+# Derived variables
+
+PROGRAM = $(addprefix $(BINDIR)/,$(PROJECT))
+IDL = $(addprefix $(IDLDIR)/,$(IDL.idl))
+STUBS = $(IDL:%.idl=%C.cpp)
+SKELETONS = $(IDL:%.idl=%S.cpp)
+COMMON = $(addprefix $(COMMONDIR)/,$(COMMON.cpp))
+SOURCES_CLNT = $(STUBS) $(COMMON) $(SOURCES.cpp)
+SOURCES = $(SOURCES_CLNT)
+ifeq ($(ISSERVER),true)
+	SOURCES += $(SKELETONS)
+endif
+OBJECTS = $(SOURCES:%.cpp=%.o)
+GENERATED = $(STUBS) $(STUBS:%.cpp=%.h) $(STUBS:%.cpp=%.inl) $(OBJECTS) $(PROGRAM)
+ifeq ($(ISSERVER),true)
+	GENERATED += $(SKELETONS) $(SKELETONS:%.cpp=%.h) $(SKELETONS:%.cpp=%.inl)
+	LIBRARIES += TAO_PortableServer
+endif
+INCS = $(foreach d, $(INCLUDES), -I$d)
+LIBS = $(foreach l, $(LIBRARIES), -l$l)
+LIBDIRS = $(foreach d, $(LIB_DIRS), -L$d)
+
+CPPFLAGS = -std=c++11
+LDFLAGS =
+
+# Rules for C++.
+
+.SUFFIXES: .cpp .o
+COMPILE.cpp = $(CC) $(CPPFLAGS) $(INCS)
+LINK.cpp = $(CC) $(LDFLAGS) $(LIBDIRS)
+.cpp.o:
+	@$(MYECHO) "Compiling $(WHITE)$(notdir $<)$(DEFC)"
+	@$(COMPILE.cpp) -c -o $(<:%.cpp=%.o) $<
+
+# Rules for stubs/skeletons
+
+%C.cpp:%.idl
+	@$(MYECHO) "Generating stubs for $(WHITE)$(notdir $<)$(DEFC)"
+	@tao_idl -w -I$(IDLDIR) -o $(IDLDIR) $< 2> /dev/null
+
+# Standard targets.
+
+.KEEP_STATE:
+
+all: $(PROGRAM)
+objects: $(SOURCES) $(OBJECTS)
+sources: $(SOURCES)
+teste:
+	@$(MYECHO) $(SOURCES)
+$(PROGRAM): $(SOURCES.cpp) $(OBJECTS)
+	@$(MYECHO) "Linking $(RED)$(notdir $@)$(DEFC)\n"
+	@$(LINK.cpp) -o $@ $(OBJECTS) $(LIBS)
+clean:
+	@$(MYECHO) "$(WHITE)Cleaning up:$(DEFC) $(notdir $(OBJECTS) $(PROGRAM))\n"
+	@rm -f  $(OBJECTS) core $(PROGRAM)
+cleanall:
+	@$(MYECHO) "$(WHITE)Cleaning up everything:$(DEFC) $(notdir $(GENERATED))\n"
+	@rm -f core $(GENERATED)
