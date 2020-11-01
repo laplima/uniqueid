@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 		// - get naming context
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-		    global::ns = NameServer::Instance(argc,argv);	// needs a owned orb
+		    global::ns = NameServer::Instance(orbm);	// use CL parameters
 		    global::ns->bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
@@ -87,6 +87,8 @@ int main(int argc, char* argv[])
 		    unlink(out_iorfile); // remove ior file
 		    cout << "OK" << endl;
 	    }
+	    // ORB from orbm is no longer running, so NS needs to create a new one
+	    global::ns = NameServer::Instance(argc, argv);
 	    if (global::ns != nullptr) {
 			cout << "\tunbinding name..." << flush;
 	        global::ns->unbind(ns_name);
