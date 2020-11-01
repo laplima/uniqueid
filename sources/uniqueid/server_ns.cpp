@@ -1,6 +1,6 @@
 //
 // Unique ID generator server
-// Copyright (C) 2019 by LAPLJ.
+// Copyright (C) 2019-20 by LAPLJ.
 // All rights reserved.
 //
 
@@ -28,11 +28,11 @@ void usage(char* prog);
 
 int main(int argc, char* argv[])
 {
+   	ORBManager orbm{argc, argv};
+
     try {
 
     	cout << "UniqueID Generator" << endl;
-
-    	ORBManager orbm{argc, argv};
 
 		for (int i=1; i<argc; i++)
 		    if (string(argv[i]) == "-o")
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 		// - get naming context
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-		    global::ns = NameServer::Instance(orbm.orb());
+		    global::ns = NameServer::Instance(argc,argv);	// needs a owned orb
 		    global::ns->bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
@@ -73,8 +73,7 @@ int main(int argc, char* argv[])
 
 		if (out_iorfile != nullptr) {
 		    // Generating + saving IOR
-		    cout << "* Saving reference (\"" << out_iorfile << "\")..."
-		    	 << flush;
+		    cout << "* Saving reference (\"" << out_iorfile << "\")..." << flush;
 		    orbm.save_ior(out_iorfile, uidgen.in());
 		    cout << "OK" << endl;
 		}
@@ -89,13 +88,13 @@ int main(int argc, char* argv[])
 		    cout << "OK" << endl;
 	    }
 	    if (global::ns != nullptr) {
-			cout << "unbinding name..." << flush;
+			cout << "\tunbinding name..." << flush;
 	        global::ns->unbind(ns_name);
 		    cout << "OK" << endl;
 	    }
 
-    } catch (CORBA::SystemException &) {
-	    cerr << "CORBA exception." << endl;
+    } catch (const CORBA::SystemException &e) {
+	    cerr << "CORBA exception: " << e << endl;
     }
 }
 

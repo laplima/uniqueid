@@ -3,6 +3,7 @@ project(uniqueid)
 
 add_executable(uniqueid ${SKELETONS}
 	${IDL}Impl.cpp
+    # UniqueIDGenImpl.cpp
 	server_ns.cpp)
 
 target_link_libraries(uniqueid ${LIBS})
