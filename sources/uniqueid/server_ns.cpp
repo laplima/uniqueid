@@ -7,6 +7,7 @@
 #include <iostream>
 #include <signal.h>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <colibry/NameServer.h>
 #include <colibry/ORBManager.h>
@@ -18,6 +19,8 @@ using namespace UIDGen;
 
 namespace global {
 	NameServer* ns = nullptr;
+	int argc = 1;
+	char** argv;
 }
 
 char* out_iorfile = nullptr;
@@ -26,9 +29,14 @@ char* ns_name = nullptr;
 void termination_handler(int nsig);
 void usage(char* prog);
 
+void save(int argc, char* argv[]);
+void restore(int& argc, char** &argv);
+
 int main(int argc, char* argv[])
 {
-   	ORBManager orbm{argc, argv};
+	save(argc, argv);
+
+   	ORBManager orbm{argc, argv};	// will remove -ORB arguments
 
     try {
 
@@ -59,7 +67,9 @@ int main(int argc, char* argv[])
 		// - get naming context
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-		    global::ns = NameServer::Instance(orbm);	// use CL parameters
+
+		    restore(argc, argv);
+		    global::ns = NameServer::Instance(argc,argv);
 		    global::ns->bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
@@ -87,8 +97,6 @@ int main(int argc, char* argv[])
 		    unlink(out_iorfile); // remove ior file
 		    cout << "OK" << endl;
 	    }
-	    // ORB from orbm is no longer running, so NS needs to create a new one
-	    global::ns = NameServer::Instance(argc, argv);
 	    if (global::ns != nullptr) {
 			cout << "\tunbinding name..." << flush;
 	        global::ns->unbind(ns_name);
@@ -110,4 +118,27 @@ void usage(char* prog)
 {
     cerr << "USAGE: " << prog << " -n <name> [-o <ior_file>]" << endl;
     exit(1);
+}
+
+char *dupstr(const char* orig)
+{
+	char* s = new char[strlen(orig)+1];
+	strcpy(s,orig);
+	return s;
+}
+
+void save(int argc, char* argv[])
+{
+	global::argc = argc;
+	global::argv = new char*[argc+1];
+	for (int i=0; i<argc; ++i)
+		global::argv[i] = dupstr(argv[i]);
+	global::argv[argc] = nullptr;
+}
+
+void restore(int& argc, char** &argv)
+{
+	// may cause memory leaks...
+	argc = global::argc;
+	argv = global::argv;
 }
