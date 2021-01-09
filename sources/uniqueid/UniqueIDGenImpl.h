@@ -3,6 +3,7 @@
 
 #include "UniqueIDGenS.h"
 #include <colibry/Bag.h>
+#include <colibry/ORBManager.h>
 
 #if !defined (ACE_LACKS_PRAGMA_ONCE)
 #pragma once
@@ -13,7 +14,7 @@ namespace UIDGen {
     class  UniqueIDGenImpl : public virtual POA_UIDGen::UniqueIDGen {
     public:
 
-		UniqueIDGenImpl ();
+		UniqueIDGenImpl (colibry::ORBManager& om);	// do not own om
 		virtual ~UniqueIDGenImpl ();
 
 		virtual ::UIDGen::ID_t getuid ();
@@ -24,6 +25,7 @@ namespace UIDGen {
     protected:
 
 		colibry::Bag<ID_t> m_bag;
+		colibry::ORBManager& om_;
     };
 
 }; // namespace

@@ -45,8 +45,10 @@ int main(int argc, char* argv[])
 
 		UIDGen::UniqueIDGen_var uid = UIDGen::UniqueIDGen::_nil();
 
-		if (ns_name != nullptr)
-			uid = NameServer::Instance(orbm.orb())->resolven<UIDGen::UniqueIDGen>(ns_name);
+		if (ns_name != nullptr) {
+			NameServer ns{orbm};
+			uid = ns.resolve<UIDGen::UniqueIDGen>(ns_name);
+		}
 		else
 			uid = orbm.string_to_object<UIDGen::UniqueIDGen>(string{"file://"} + iorfile);
 

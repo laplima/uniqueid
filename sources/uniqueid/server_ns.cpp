@@ -5,7 +5,6 @@
 //
 
 #include <iostream>
-#include <signal.h>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -17,26 +16,14 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-namespace global {
-	NameServer* ns = nullptr;
-	int argc = 1;
-	char** argv;
-}
-
 char* out_iorfile = nullptr;
 char* ns_name = nullptr;
 
-void termination_handler(int nsig);
 void usage(char* prog);
-
-void save(int argc, char* argv[]);
-void restore(int& argc, char** &argv);
 
 int main(int argc, char* argv[])
 {
-	save(argc, argv);
-
-   	ORBManager orbm{argc, argv};	// will remove -ORB arguments
+   	ORBManager orbm{argc, argv};
 
     try {
 
@@ -51,27 +38,23 @@ int main(int argc, char* argv[])
 		if (ns_name == nullptr)
 		    usage(argv[0]);
 
-		signal(SIGINT,termination_handler);
-		signal(SIGTERM,termination_handler);
-
     	orbm.activate_rootpoa();
 
 		// Create the servant
 		cout << "* Creating servant..." << flush;
-		UniqueIDGenImpl uidgen_i;
+		UniqueIDGenImpl uidgen_i{orbm};
 		cout << "OK" << endl;
 
 		UniqueIDGen_var uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register in the NS
-		// - get naming context
+		bool nsbound = false;
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-
-		    restore(argc, argv);
-		    global::ns = NameServer::Instance(argc,argv);
-		    global::ns->bind(ns_name,uidgen.in());
+	    	NameServer ns{orbm};
+		    ns.bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
+		    nsbound = true;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
 		    cerr << "NAME ALREADY BOUND!" << endl;
 		    throw;
@@ -97,21 +80,18 @@ int main(int argc, char* argv[])
 		    unlink(out_iorfile); // remove ior file
 		    cout << "OK" << endl;
 	    }
-	    if (global::ns != nullptr) {
+	    if (nsbound) {
 			cout << "\tunbinding name..." << flush;
-	        global::ns->unbind(ns_name);
+			// use new orbm
+			ORBManager om{argc,argv,"nsorb"};
+			NameServer ns{om};
+	        ns.unbind(ns_name);
 		    cout << "OK" << endl;
 	    }
 
     } catch (const CORBA::SystemException &e) {
 	    cerr << "CORBA exception: " << e << endl;
     }
-}
-
-
-void termination_handler(int nsig)
-{
-    ORBManager::global->shutdown();
 }
 
 void usage(char* prog)
@@ -127,18 +107,3 @@ char *dupstr(const char* orig)
 	return s;
 }
 
-void save(int argc, char* argv[])
-{
-	global::argc = argc;
-	global::argv = new char*[argc+1];
-	for (int i=0; i<argc; ++i)
-		global::argv[i] = dupstr(argv[i]);
-	global::argv[argc] = nullptr;
-}
-
-void restore(int& argc, char** &argv)
-{
-	// may cause memory leaks...
-	argc = global::argc;
-	argv = global::argv;
-}

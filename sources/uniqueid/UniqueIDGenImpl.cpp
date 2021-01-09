@@ -6,7 +6,7 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-UniqueIDGenImpl::UniqueIDGenImpl (void) : m_bag(1,10000)
+UniqueIDGenImpl::UniqueIDGenImpl (ORBManager& om) : om_{om}, m_bag(1,10000)
 {
 }
 
@@ -42,5 +42,5 @@ void UniqueIDGenImpl::reset()
 
 void UniqueIDGenImpl::shutdown()
 {
-    ORBManager::global->shutdown();
+    om_.shutdown();
 }
