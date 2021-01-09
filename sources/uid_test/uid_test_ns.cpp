@@ -26,6 +26,7 @@ int main(int argc, char* argv[])
 	try {
 
 		cout << "UniqueID client" << endl;
+		cout << "(C) laplima" << endl;
 
 		ORBManager orbm{argc, argv};
 
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 		}
 
 		// return ids (before shutting down)
-		cout << "returning: ";
+		cout << "returning ids: ";
 		bool first = true;
 		for (auto v : ids) {
 			uid->putback(v);

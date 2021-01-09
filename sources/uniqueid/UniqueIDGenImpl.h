@@ -10,8 +10,7 @@ namespace UIDGen {
     class  UniqueIDGenImpl : public virtual POA_UIDGen::UniqueIDGen {
     public:
 
-		UniqueIDGenImpl (const std::function<void()>& notify_shutdown);	// do not own om
-		virtual ~UniqueIDGenImpl ();
+		UniqueIDGenImpl (const std::function<void()>& notify_shutdown);
 
 		virtual ::UIDGen::ID_t getuid ();
 		virtual void putback (::UIDGen::ID_t id);
@@ -25,6 +24,5 @@ namespace UIDGen {
     };
 
 }; // namespace
-
 
 #endif /* UNIQUEIDGENI_H_  */

@@ -10,10 +10,6 @@ UniqueIDGenImpl::UniqueIDGenImpl (const function<void()>& notify_shutdown)
 {
 }
 
-UniqueIDGenImpl::~UniqueIDGenImpl (void)
-{
-}
-
 ::UIDGen::ID_t UniqueIDGenImpl::getuid ()
 {
     ID_t id;
