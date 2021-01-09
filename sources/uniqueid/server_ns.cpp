@@ -16,9 +16,6 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-char* out_iorfile = nullptr;
-char* ns_name = nullptr;
-
 void usage(char* prog);
 
 int main(int argc, char* argv[])
@@ -29,39 +26,46 @@ int main(int argc, char* argv[])
 
     	cout << "UniqueID Generator" << endl;
 
+		const char* out_iorfile = nullptr;
+		const char* ns_name = "uid";			// default name
+
 		for (int i=1; i<argc; i++)
 		    if (string(argv[i]) == "-o")
 				out_iorfile = argv[++i];
 		    else if (string(argv[i]) == "-n")
 		    	ns_name = argv[++i];
-
-		if (ns_name == nullptr)
-		    usage(argv[0]);
+		    else if (string{argv[i]} == "-i")
+		    	usage(argv[0]);
 
     	orbm.activate_rootpoa();
 
 		// Create the servant
 		cout << "* Creating servant..." << flush;
-		UniqueIDGenImpl uidgen_i{orbm};
+		UniqueIDGenImpl uidgen_i([&orbm,ns_name]() {
+			cout << "\tunbinding name \"" << ns_name << "\"..." << flush;
+			NameServer{orbm}.unbind(ns_name);
+		    cout << "OK" << endl;
+		    orbm.shutdown();
+		});
 		cout << "OK" << endl;
 
 		UniqueIDGen_var uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register in the NS
-		bool nsbound = false;
 		try {
 		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
 	    	NameServer ns{orbm};
 		    ns.bind(ns_name,uidgen.in());
 		    cout << "OK" << endl;
-		    nsbound = true;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
 		    cerr << "NAME ALREADY BOUND!" << endl;
 		    throw;
 		} catch (CORBA::ORB::InvalidName&) {
 		    cerr << " NS is not running." << endl;
+		    throw;
 		} catch (const CORBA::Exception&) {
 			cerr << "CORBA exception while connecting to NS" << endl;
+			throw;
 		}
 
 		if (out_iorfile != nullptr) {
@@ -78,14 +82,6 @@ int main(int argc, char* argv[])
 	    if (out_iorfile != nullptr) {
 		    cout << "\tremoving file..." << flush;
 		    unlink(out_iorfile); // remove ior file
-		    cout << "OK" << endl;
-	    }
-	    if (nsbound) {
-			cout << "\tunbinding name..." << flush;
-			// use new orbm
-			ORBManager om{argc,argv,"nsorb"};
-			NameServer ns{om};
-	        ns.unbind(ns_name);
 		    cout << "OK" << endl;
 	    }
 

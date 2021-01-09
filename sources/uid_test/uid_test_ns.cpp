@@ -21,6 +21,8 @@ vector<string> split(const string& input)
 
 int main(int argc, char* argv[])
 {
+	const char* DFLT_NAME = "uid";
+
 	try {
 
 		cout << "UniqueID client" << endl;
@@ -39,8 +41,9 @@ int main(int argc, char* argv[])
 		}
 
 		if (ns_name == nullptr && iorfile == nullptr) {
-			cerr << "USAGE: " << argv[0] << " [-n <NAME> | -f <IORFILE>" << endl;
-			return 1;
+			cerr << "USAGE: " << argv[0] << " [-n <NAME> | -f <IORFILE>]" << endl;
+			cout << "Using default name: \"" << DFLT_NAME << "\"" << endl;
+			ns_name = DFLT_NAME;
 		}
 
 		UIDGen::UniqueIDGen_var uid = UIDGen::UniqueIDGen::_nil();
@@ -86,20 +89,32 @@ int main(int argc, char* argv[])
 						cerr << "\tInvalid ID" << endl;
 					}
 				}
-			} else if (tks[0] == "s") {
-				uid->shutdown();
+			} else if (tks[0] == "s")
 				break;
-			}
 
 			cout << "> ";
 			getline(cin, cmd);
 		}
 
-		cout << "Terminating" << flush;
+		// return ids (before shutting down)
+		cout << "returning: ";
+		bool first = true;
 		for (auto v : ids) {
 			uid->putback(v);
-			cout << " " << v << flush;
+			if (first) {
+				cout << v;
+				first = false;
+			} else
+				cout << ", " << v;
 		}
+		cout << endl;
+
+		if (cmd == "s") {
+			// shutdown
+			uid->shutdown();
+		}
+
+		cout << "Terminating" << flush;
 		cout << endl;
 
 	} catch (CORBA::Exception& e) {
