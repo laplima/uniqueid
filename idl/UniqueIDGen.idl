@@ -11,6 +11,7 @@ module UIDGen {
         ID_t getuid();
         void putback(in ID_t id) raises (InvalidID);
         void reset();
+        string getustr();		// get unique string
         oneway void shutdown();
     };
 

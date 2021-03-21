@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(uniqueid)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}")
 
 set(IDL_DIR "${PROJECT_SOURCE_DIR}/idl")
@@ -30,6 +30,8 @@ link_directories("$ENV{ACE_ROOT}/lib" "$ENV{ORBUTILS}/lib" "$ENV{COLIBRY}/lib")
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	add_compile_options(-Wno-deprecated-declarations -fdelayed-template-parsing)
 endif()
+
+add_compile_definitions(DEBUG)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 

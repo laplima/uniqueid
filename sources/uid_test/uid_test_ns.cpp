@@ -19,13 +19,48 @@ vector<string> split(const string& input)
 	return {first, last};
 }
 
+class IDBag {
+protected:
+	std::vector<UIDGen::ID_t> ids;
+public:
+	void add(UIDGen::ID_t id) { ids.push_back(id); }
+	void remove(UIDGen::ID_t id) {
+		auto p = find(ids.begin(), ids.end(), id);
+		if (p != ids.end())
+			ids.erase(p);
+	}
+	void clear() { ids.clear(); }
+	auto begin() { return ids.begin(); }
+	auto end() { return ids.end(); }
+	friend ostream& operator<<(ostream& os, const IDBag& idg) {
+		bool first = true;
+		os << '[';
+		for (const auto& i : idg.ids) {
+			if (first) {
+				first = false;
+				os << i;
+			} else
+				os << ", " << i;
+		}
+		return (os << ']');
+	}
+};
+
+void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid)
+{
+	std::for_each(idg.begin(), idg.end(), [&uid](auto& id) {
+		uid->putback(id);
+	});
+	idg.clear();
+}
+
 int main(int argc, char* argv[])
 {
 	const char* DFLT_NAME = "uid";
 
 	try {
 
-		cout << "UniqueID client" << endl;
+		cout << "UniqueID Test client" << endl;
 		cout << "(C) laplima" << endl;
 
 		ORBManager orbm{argc, argv};
@@ -52,8 +87,7 @@ int main(int argc, char* argv[])
 		if (ns_name != nullptr) {
 			NameServer ns{orbm};
 			uid = ns.resolve<UIDGen::UniqueIDGen>(ns_name);
-		}
-		else
+		} else
 			uid = orbm.string_to_object<UIDGen::UniqueIDGen>(string{"file://"} + iorfile);
 
 		if (CORBA::is_nil(uid.ptr())) {
@@ -64,9 +98,13 @@ int main(int argc, char* argv[])
 		cout << "g = get" << endl
 			 << "p <N> = put back" << endl
 			 << "s = shutdown" << endl
-			 << "<ENTER> = exit" << endl << endl;
+			 << "r = reset" << endl
+			 << "u = getustr" << endl
+			 << "<ENTER> = exit + return ids" << endl
+			 << "x = exit" << endl << endl;
 
-		vector<UIDGen::ID_t> ids;
+		IDBag idg;
+		bool returnids = true;
 		string cmd;
 		cout << "> ";
 		getline(cin, cmd);
@@ -75,40 +113,47 @@ int main(int argc, char* argv[])
 
 			if (tks[0] == "g") {
 				auto v = uid->getuid();
-				cout << "\t" << v << endl;
-				ids.push_back(v);
+				cout << "    => " << v << endl;
+				idg.add(v);
+				cout << "    " << idg << endl;
 			} else if (tks[0] == "p") {
 				if (tks.size() < 2)
-					cerr << "\tmissing id" << endl;
+					cerr << "    missing id" << endl;
 				else {
 					try {
 						UIDGen::ID_t v = stoi(tks[1]);
 						uid->putback(v);
-						cout << "\t" << v << " put back" << endl;
-						ids.erase(find(ids.begin(), ids.end(), v));
+						cout << "    " << v << " =>" << endl;
+						idg.remove(v);
 					} catch (const UIDGen::InvalidID&) {
-						cerr << "\tInvalid ID" << endl;
+						cerr << "    Invalid ID" << endl;
 					}
+					cout << "    " << idg << endl;
 				}
+			} else if (tks[0] == "r") {
+				uid->reset();
+				idg.clear();
+				cout << "    uid reset" << endl;
+			} else if (tks[0] == "u") {
+				string us = uid->getustr();
+				cout << "   -> " << us << endl;
 			} else if (tks[0] == "s")
 				break;
+			else if (tks[0] == "x") {
+				returnids = false;
+				break;
+			} else
+				cout << "   unknown command" << endl;
 
 			cout << "> ";
 			getline(cin, cmd);
 		}
 
-		// return ids (before shutting down)
-		cout << "returning ids: ";
-		bool first = true;
-		for (auto v : ids) {
-			uid->putback(v);
-			if (first) {
-				cout << v;
-				first = false;
-			} else
-				cout << ", " << v;
+		if (returnids) {
+			// return ids (before shutting down)
+			cout << "returning ids" << endl;
+			return_ids(idg,uid);
 		}
-		cout << endl;
 
 		if (cmd == "s") {
 			// shutdown
