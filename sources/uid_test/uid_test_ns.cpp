@@ -22,12 +22,28 @@ public:
 	friend ostream& operator<<(ostream& os, const IDBag& idg);
 };
 
+class App {
+public:
+	enum class State { STARTING, RUNNING, QUITTING };
+public:
+	App(UIDGen::UniqueIDGen_ptr uid) : uid_{uid} {}
+	void help();
+	void run();
+	State state() const { return state_; }
+private:
+	UIDGen::UniqueIDGen_ptr uid_;
+	State state_ = State::STARTING;
+	IDBag idg_;
+protected:
+	void execute();
+	void return_ids();
+	string input(const string& prompt);
+};
+
 // helpers
 
+UIDGen::UniqueIDGen_ptr getref(const char* nsname, const char* iorfile);
 vector<string> split(const string& input);
-void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid);
-void help();
-string input(const string& prompt);
 
 // ------------------------------------------------------------------
 
@@ -59,6 +75,8 @@ int main(int argc, char* argv[])
 			ns_name = DFLT_NAME;
 		}
 
+		// get reference
+
 		UIDGen::UniqueIDGen_var uid = UIDGen::UniqueIDGen::_nil();
 
 		if (ns_name != nullptr) {
@@ -72,66 +90,11 @@ int main(int argc, char* argv[])
 			return 2;
 		}
 
-		help();
+		// run application
 
-		IDBag idg;
-		bool returnids = false;
-		string cmd = input("> ");
-		bool valid_state = true;
-		while (!cmd.empty() && valid_state) {
-			auto tks = split(cmd);
-
-			switch (tks[0][0]) {
-				case 'h':
-					help();
-					break;
-				case 'g': {
-					auto v = uid->getuid();
-					cout << "    => " << v << endl;
-					idg.add(v);
-					cout << "    " << idg << endl; }
-					break;
-				case 'p':
-					if (tks.size() < 2)
-						cerr << "    missing id" << endl;
-					else {
-						try {
-							UIDGen::ID_t v = stoi(tks[1]);
-							uid->putback(v);
-							cout << "    " << v << " =>" << endl;
-							idg.remove(v);
-						} catch (const UIDGen::InvalidID&) {
-							cerr << "    Invalid ID" << endl;
-						}
-						cout << "    " << idg << endl;
-					}
-					break;
-				case 'r':
-					uid->reset();
-					idg.clear();
-					cout << "    uid reset" << endl;
-					break;
-				case 'u': {
-					string us = uid->getustr();
-					cout << "   -> " << us << endl; }
-					break;
-				case 'x':
-					returnids = true;
-					valid_state = false;
-					break;
-				default:
-					cout << "   unknown command" << endl;
-			}
-
-			if (valid_state)
-				cmd = input("> ");
-		}
-
-		if (returnids) {
-			// return ids (before shutting down)
-			cout << "\tReturning ids" << endl;
-			return_ids(idg,uid);
-		}
+		App app{uid.in()};
+		app.help();
+		app.run();
 
 		cout << "Terminating" << flush;
 		cout << endl;
@@ -141,7 +104,11 @@ int main(int argc, char* argv[])
 	}
 }
 
-void help()
+//
+// APP
+//
+
+void App::help()
 {
 	cout << "g = get" << endl
 		 << "p <N> = put back" << endl
@@ -152,13 +119,86 @@ void help()
 		 << "<ENTER> = exit" << endl << endl;
 }
 
-string input(const string& prompt)
+string App::input(const string& prompt)
 {
 	string rd;
 	cout << "> ";
 	getline(cin, rd);
 	return rd;
 }
+
+void App::run()
+{
+	state_ = State::RUNNING;
+	while (state() != State::QUITTING)
+		execute();
+}
+
+void App::execute()
+{
+	string cmd = input("> ");
+
+	if (cmd.empty()) {
+		state_ = State::QUITTING;
+		return;
+	}
+
+	auto tks = split(cmd);
+	switch (tks[0][0]) {
+		case 'h':
+			help();
+			break;
+		case 'g': {
+			auto v = uid_->getuid();
+			cout << "    => [" << v << "]" << endl;
+			idg_.add(v);
+			cout << "    " << idg_ << endl; }
+			break;
+		case 'p':
+			if (tks.size() < 2)
+				cerr << "    missing id" << endl;
+			else {
+				try {
+					UIDGen::ID_t v = stoi(tks[1]);
+					uid_->putback(v);
+					cout << "    " << v << " =>" << endl;
+					idg_.remove(v);
+				} catch (const UIDGen::InvalidID&) {
+					cerr << "    Invalid ID" << endl;
+				}
+				cout << "    " << idg_ << endl;
+			}
+			break;
+		case 'r':
+			uid_->reset();
+			idg_.clear();
+			cout << "    uid reset" << endl;
+			break;
+		case 'u': {
+			string us = uid_->getustr();
+			cout << "   => \"" << us << "\"" << endl; }
+			break;
+		case 'x':
+			cout << "\tReturning ids: ";
+			return_ids();
+			state_ = State::QUITTING;
+			break;
+		default:
+			cout << "   unknown command" << endl;
+	}
+}
+
+void App::return_ids()
+{
+	std::for_each(idg_.begin(), idg_.end(), [this](auto& id) {
+		cout << id << " ";
+		this->uid_->putback(id);
+	});
+	cout << endl;
+	idg_.clear();
+}
+
+// helpers
 
 vector<string> split(const string& input)
 {
@@ -190,12 +230,4 @@ ostream& operator<<(ostream& os, const IDBag& idg)
 			os << ", " << i;
 	}
 	return (os << ']');
-}
-
-void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid)
-{
-	std::for_each(idg.begin(), idg.end(), [&uid](auto& id) {
-		uid->putback(id);
-	});
-	idg.clear();
 }

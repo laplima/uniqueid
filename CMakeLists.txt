@@ -18,14 +18,20 @@ include_directories(
     "$ENV{TAO_ROOT}"
     "$ENV{TAO_ROOT}/orbsvcs")
 
-set(LIBS ACE TAO TAO_PortableServer TAO_AnyTypeCode TAO_CosNaming colibry_static pthread rt)
+set(LIBS
+	ACE TAO TAO_PortableServer TAO_AnyTypeCode TAO_CosNaming
+	colibry_static
+	pthread)
+
+# additional os-specific libraries
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	set(LIBS ${LIBS} rt)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	# set(LIBS ${LIBS} _______________)
+endif()
+
 
 link_directories("$ENV{ACE_ROOT}/lib" "$ENV{ORBUTILS}/lib" "$ENV{COLIBRY}/lib")
-
-# message("dir = ${PROJECT_SOURCE_DIR}")
-# message("dir2 = ${PROJECT_BINARY_DIR}")
-# message("dir3 = ${CMAKE_BINARY_DIR}")
-# message("dir3 = ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	add_compile_options(-Wno-deprecated-declarations -fdelayed-template-parsing)
@@ -37,4 +43,3 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 add_subdirectory(sources/uniqueid)
 add_subdirectory(sources/uid_test)
-
