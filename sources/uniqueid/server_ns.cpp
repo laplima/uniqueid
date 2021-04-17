@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fstream>
 #include <cassert>
+#include <thread>
 #include <colibry/NameServer.h>
 #include <colibry/ORBManager.h>
 #include "UniqueIDGenImpl.h"
@@ -17,13 +18,13 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-void usage(char* prog);
+void help(char* prog);
 
 int main(int argc, char* argv[])
 {
-    try {
+	try {
 
-    	cout << "UniqueID Generator" << endl;
+		cout << "UniqueID Generator" << endl;
 
 		const char* out_iorfile = nullptr;
 		const char* ns_name = "uid";			// default name
@@ -34,70 +35,75 @@ int main(int argc, char* argv[])
 				out_iorfile = argv[++i];
 			else if (arg == "-n")
 				ns_name = argv[++i];
-			else if (arg == "-i")				// usage info
-				usage(argv[0]);
+			else if (arg == "-h")				// usage info
+				help(argv[0]);
 		}
 		assert(ns_name != nullptr);
 
-	   	ORBManager orbm{argc, argv};
-    	orbm.activate_rootpoa();
+		ORBManager orbm{argc, argv};
+		orbm.activate_rootpoa();
 
 		// Create the servant
 		cout << "* Creating servant..." << flush;
-
-		auto shutdown_notify = [&orbm,ns_name]() {
-			cout << "\tunbinding name \"" << ns_name << "\"..." << flush;
-			NameServer{orbm}.unbind(ns_name);
-		    cout << "OK" << endl;
-		    orbm.shutdown();
-		};
-
-		UniqueIDGenImpl uidgen_i(shutdown_notify);
+		UniqueIDGenImpl uidgen_i;
 		cout << "OK" << endl;
 
 		UniqueIDGen_var uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register object in the NS
 		try {
-		    cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
-	    	NameServer ns{orbm};
-		    ns.bind(ns_name,uidgen.in());
-		    cout << "OK" << endl;
+			cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
+			NameServer ns{orbm};
+			ns.bind(ns_name,uidgen.in());
+			cout << "OK" << endl;
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
-		    cerr << "NAME ALREADY BOUND!" << endl;
-		    throw;
+			cerr << "NAME ALREADY BOUND!" << endl;
+			if (out_iorfile == nullptr)
+				throw;
 		} catch (CORBA::ORB::InvalidName&) {
-		    cerr << " NS is not running." << endl;
-		    throw;
+			cerr << " NS is not running." << endl;
+			throw;
 		} catch (const CORBA::Exception&) {
 			cerr << "CORBA exception while connecting to NS" << endl;
 			throw;
 		}
 
 		if (out_iorfile != nullptr) {
-		    // Generating + saving IOR
-		    cout << "* Saving reference (\"" << out_iorfile << "\")..." << flush;
-		    orbm.save_ior(out_iorfile, uidgen.in());
-		    cout << "OK" << endl;
+			// Generating + saving IOR
+			cout << "* Saving reference (\"" << out_iorfile << "\")..." << flush;
+			orbm.save_ior(out_iorfile, uidgen.in());
+			cout << "OK" << endl;
 		}
 
 		cout << "* Running event loop." << endl;
-		orbm.run ();
+		thread t{[&orbm]() { orbm.run(); }};
 
-	    cout << "* Shutting down orb..." << endl;
-	    if (out_iorfile != nullptr) {
-		    cout << "\tremoving file..." << flush;
-		    unlink(out_iorfile); // remove ior file
-		    cout << "OK" << endl;
-	    }
+		cout << "  Type <ENTER> to quit" << endl;
+		cin.get();
 
-    } catch (const CORBA::SystemException &e) {
-	    cerr << "CORBA exception: " << e << endl;
-    }
+		// Clean-up IOR publications
+		cout << "\tUbinding name \"" << ns_name << "\"..." << flush;
+		NameServer{orbm}.unbind(ns_name);
+		cout << "OK" << endl;
+
+		if (out_iorfile != nullptr) {
+			cout << "\tRemoving file..." << flush;
+			unlink(out_iorfile); // remove ior file
+			cout << "OK" << endl;
+		}
+
+		cout << "* Shutting down orb... " << flush;
+		orbm.shutdown();
+		t.join();
+		cout << "OK" << endl;
+
+	} catch (const CORBA::SystemException &e) {
+		cerr << "CORBA exception: " << e << endl;
+	}
 }
 
-void usage(char* prog)
+void help(char* prog)
 {
-    cerr << "USAGE: " << prog << " -n <name> [-o <ior_file>] [-i]" << endl;
-    exit(1);
+	cerr << "USAGE: " << prog << " -n <name> [-o <ior_file>] [-h]" << endl;
+	exit(1);
 }

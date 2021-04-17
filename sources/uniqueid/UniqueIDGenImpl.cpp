@@ -6,95 +6,84 @@ using namespace std;
 using namespace colibry;
 using namespace UIDGen;
 
-
-UniqueIDGenImpl::UniqueIDGenImpl (const function<void()>& notify_shutdown)
-    : bag_(1,10000), notify_shutdown_(notify_shutdown), ss_{10, '0', '9'}
+UniqueIDGenImpl::UniqueIDGenImpl () : bag_(1,10000), ss_{10, '0', '9'}
 {
 }
 
 ::UIDGen::ID_t UniqueIDGenImpl::getuid ()
 {
 #if DEBUG
-    LOG(INFO) << "get: " << bag_ << endl;
+	LOG(INFO) << "get: " << bag_ << endl;
 #endif
 
-    ID_t id;
-    try {
+	ID_t id;
+	try {
 		id = bag_.get();
-    } catch (const underflow_error&) {
+	} catch (const underflow_error&) {
 		LOG(ERROR) << "No more IDs left";
-    }
-    return id;
+	}
+	return id;
 }
 
 void UniqueIDGenImpl::putback (::UIDGen::ID_t id)
 {
-    try {
+	try {
 		bag_.put_back(id);
 #if DEBUG
-        LOG(INFO) << "putback: " << bag_;
+		LOG(INFO) << "putback: " << bag_;
 #endif
    } catch (...) {
 		LOG(ERROR) << "Put back id failed.";
-        throw InvalidID{};
-    }
+		throw InvalidID{};
+	}
 }
 
 char *UniqueIDGenImpl::getustr()
 {
-    auto ss = CORBA::string_dup(static_cast<string>(ss_).c_str());
-    ss_.next();
-    return ss;
+	auto ss = CORBA::string_dup(static_cast<string>(ss_).c_str());
+	ss_.next();
+	return ss;
 }
-
 
 void UniqueIDGenImpl::reset()
 {
-    bag_.reset();
-    ss_.reset();
+	bag_.reset();
+	ss_.reset();
 #if DEBUG
-    LOG(INFO) << "reset: " << bag_;
+	LOG(INFO) << "reset: " << bag_;
 #endif
-}
-
-void UniqueIDGenImpl::shutdown()
-{
-#if DEBUG
-    LOG(INFO) << "shutdown";
-#endif
-    notify_shutdown_();
 }
 
 // ------------------------------------------------------
 
 SeqString::SeqString(std::size_t sz, char first_char, char last_char)
-        : ss_(sz, first_char), first_{first_char}, last_{last_char}
+		: ss_(sz, first_char), first_{first_char}, last_{last_char}
 {}
 
 void SeqString::reset()
 {
-    for (char& c : ss_)
-        c = first_;
+	for (char& c : ss_)
+		c = first_;
 }
 
 bool SeqString::is_last()
 {
-    for (const char& c : ss_)
-        if (c != last_)
-            return false;
-    return true;
+	for (const char& c : ss_)
+		if (c != last_)
+			return false;
+	return true;
 }
 
 std::string SeqString::next()
 {
-    for (int i=ss_.size()-1; i>=0; --i) {
-        ++ss_[i];
-        if (ss_[i] <= last_)
-            return ss_;
-        else
-            ss_[i] = first_;
-    }
-    if (is_last())
-        reset();
-    return ss_;
+	for (int i=ss_.size()-1; i>=0; --i) {
+		++ss_[i];
+		if (ss_[i] <= last_)
+			return ss_;
+		else
+			ss_[i] = first_;
+	}
+	if (is_last())
+		reset();
+	return ss_;
 }

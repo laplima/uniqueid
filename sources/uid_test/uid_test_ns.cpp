@@ -10,49 +10,26 @@
 using namespace std;
 using namespace colibry;
 
-vector<string> split(const string& input)
-{
-	regex re{"\\s+"};
-	sregex_token_iterator
-		first{input.begin(), input.end(), re, -1}, // -1 performns splitting
-		last;
-	return {first, last};
-}
-
 class IDBag {
 protected:
 	std::vector<UIDGen::ID_t> ids;
 public:
 	void add(UIDGen::ID_t id) { ids.push_back(id); }
-	void remove(UIDGen::ID_t id) {
-		auto p = find(ids.begin(), ids.end(), id);
-		if (p != ids.end())
-			ids.erase(p);
-	}
+	void remove(UIDGen::ID_t id);
 	void clear() { ids.clear(); }
 	auto begin() { return ids.begin(); }
 	auto end() { return ids.end(); }
-	friend ostream& operator<<(ostream& os, const IDBag& idg) {
-		bool first = true;
-		os << '[';
-		for (const auto& i : idg.ids) {
-			if (first) {
-				first = false;
-				os << i;
-			} else
-				os << ", " << i;
-		}
-		return (os << ']');
-	}
+	friend ostream& operator<<(ostream& os, const IDBag& idg);
 };
 
-void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid)
-{
-	std::for_each(idg.begin(), idg.end(), [&uid](auto& id) {
-		uid->putback(id);
-	});
-	idg.clear();
-}
+// helpers
+
+vector<string> split(const string& input);
+void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid);
+void help();
+string input(const string& prompt);
+
+// ------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
@@ -95,69 +72,65 @@ int main(int argc, char* argv[])
 			return 2;
 		}
 
-		cout << "g = get" << endl
-			 << "p <N> = put back" << endl
-			 << "s = shutdown" << endl
-			 << "r = reset" << endl
-			 << "u = getustr" << endl
-			 << "<ENTER> = exit + return ids" << endl
-			 << "x = exit" << endl << endl;
+		help();
 
 		IDBag idg;
-		bool returnids = true;
-		string cmd;
-		cout << "> ";
-		getline(cin, cmd);
-		while (!cmd.empty()) {
+		bool returnids = false;
+		string cmd = input("> ");
+		bool valid_state = true;
+		while (!cmd.empty() && valid_state) {
 			auto tks = split(cmd);
 
-			if (tks[0] == "g") {
-				auto v = uid->getuid();
-				cout << "    => " << v << endl;
-				idg.add(v);
-				cout << "    " << idg << endl;
-			} else if (tks[0] == "p") {
-				if (tks.size() < 2)
-					cerr << "    missing id" << endl;
-				else {
-					try {
-						UIDGen::ID_t v = stoi(tks[1]);
-						uid->putback(v);
-						cout << "    " << v << " =>" << endl;
-						idg.remove(v);
-					} catch (const UIDGen::InvalidID&) {
-						cerr << "    Invalid ID" << endl;
+			switch (tks[0][0]) {
+				case 'h':
+					help();
+					break;
+				case 'g': {
+					auto v = uid->getuid();
+					cout << "    => " << v << endl;
+					idg.add(v);
+					cout << "    " << idg << endl; }
+					break;
+				case 'p':
+					if (tks.size() < 2)
+						cerr << "    missing id" << endl;
+					else {
+						try {
+							UIDGen::ID_t v = stoi(tks[1]);
+							uid->putback(v);
+							cout << "    " << v << " =>" << endl;
+							idg.remove(v);
+						} catch (const UIDGen::InvalidID&) {
+							cerr << "    Invalid ID" << endl;
+						}
+						cout << "    " << idg << endl;
 					}
-					cout << "    " << idg << endl;
-				}
-			} else if (tks[0] == "r") {
-				uid->reset();
-				idg.clear();
-				cout << "    uid reset" << endl;
-			} else if (tks[0] == "u") {
-				string us = uid->getustr();
-				cout << "   -> " << us << endl;
-			} else if (tks[0] == "s")
-				break;
-			else if (tks[0] == "x") {
-				returnids = false;
-				break;
-			} else
-				cout << "   unknown command" << endl;
+					break;
+				case 'r':
+					uid->reset();
+					idg.clear();
+					cout << "    uid reset" << endl;
+					break;
+				case 'u': {
+					string us = uid->getustr();
+					cout << "   -> " << us << endl; }
+					break;
+				case 'x':
+					returnids = true;
+					valid_state = false;
+					break;
+				default:
+					cout << "   unknown command" << endl;
+			}
 
-			cout << "> ";
-			getline(cin, cmd);
+			if (valid_state)
+				cmd = input("> ");
 		}
 
 		if (returnids) {
 			// return ids (before shutting down)
-			cout << "returning ids" << endl;
+			cout << "\tReturning ids" << endl;
 			return_ids(idg,uid);
-		}
-
-		if (cmd == "s") {
-			// shutdown
-			uid->shutdown();
 		}
 
 		cout << "Terminating" << flush;
@@ -166,4 +139,63 @@ int main(int argc, char* argv[])
 	} catch (CORBA::Exception& e) {
 		cerr << "CORBA exception: " << e << endl;
 	}
+}
+
+void help()
+{
+	cout << "g = get" << endl
+		 << "p <N> = put back" << endl
+		 << "u = getustr" << endl
+		 << "r = reset" << endl
+		 << "h = help" << endl
+		 << "x = exit + return ids" << endl
+		 << "<ENTER> = exit" << endl << endl;
+}
+
+string input(const string& prompt)
+{
+	string rd;
+	cout << "> ";
+	getline(cin, rd);
+	return rd;
+}
+
+vector<string> split(const string& input)
+{
+	regex re{"\\s+"};
+	sregex_token_iterator
+		first{input.begin(), input.end(), re, -1}, // -1 performns splitting
+		last;
+	return {first, last};
+}
+
+// IDBag
+
+void IDBag::remove(UIDGen::ID_t id)
+{
+	auto p = find(ids.begin(), ids.end(), id);
+	if (p != ids.end())
+		ids.erase(p);
+}
+
+ostream& operator<<(ostream& os, const IDBag& idg)
+{
+	bool first = true;
+	os << '[';
+	for (const auto& i : idg.ids) {
+		if (first) {
+			first = false;
+			os << i;
+		} else
+			os << ", " << i;
+	}
+	return (os << ']');
+}
+
+void return_ids(IDBag& idg, UIDGen::UniqueIDGen_ptr uid)
+{
+	std::for_each(idg.begin(), idg.end(), [&uid](auto& id) {
+		uid->putback(id);
+	});
+	idg.clear();
 }
