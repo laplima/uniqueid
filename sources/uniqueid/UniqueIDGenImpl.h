@@ -28,10 +28,10 @@ namespace UIDGen {
 
 		UniqueIDGenImpl();
 
-		virtual ::UIDGen::ID_t getuid ();
-		virtual void putback (::UIDGen::ID_t id);
-		virtual char *getustr();
-		virtual void reset();
+		::UIDGen::ID_t getuid () override;
+		void putback (::UIDGen::ID_t id) override;
+		char *getustr() override;
+		void reset() override;
 
 	protected:
 
@@ -42,4 +42,4 @@ namespace UIDGen {
 
 };
 
-#endif /* UNIQUEIDGENI_H_  */
+#endif

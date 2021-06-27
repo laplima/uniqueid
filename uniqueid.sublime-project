@@ -3,19 +3,11 @@
 	[
 		{
 			"path": ".",
-			"folder_exclude_patterns": ["build"],
+			"folder_exclude_patterns": ["build", ".cache"],
 			"file_exclude_patterns": ["*.sublime-workspace", "*C.h", "*S.h", "*GenS.cpp", "*C.cpp", "*.inl"]
 		}
 	],
 	"settings": {
-		// "ecc_common_flags" :
-		// [
-		// 	"-I${project_path}/idl",
-		// 	"-I${COLIBRY}/include",
-		// 	"-I${ACE_ROOT}",
-		// 	"-I${TAO_ROOT}",
-		// 	"-I${TAO_ROOT}/orbsvcs"
-		// ],
 		"SublimeLinter.linters.clang++.I":
 		[
 			"${project_path}/idl",
@@ -24,5 +16,11 @@
 			"${TAO_ROOT}",
 			"${TAO_ROOT}/orbsvcs"
 		]
-	}
+	},
+	"build_systems" : [
+		{
+			"name": "Make C/S",
+			"cmd": ["make", "-C", "$project_path/build"]
+		}
+	]
 }
