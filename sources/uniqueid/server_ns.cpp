@@ -4,14 +4,19 @@
 // All rights reserved.
 //
 
+#include <exception>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <cassert>
-#include <thread>
+#include <span>
+#include <csignal>
+#include <functional>
 #include <colibry/NameServer.h>
 #include <colibry/ORBManager.h>
+#include <colibry/TextTools.h>
+#include <sys/socket.h>
 #include "UniqueIDGenImpl.h"
 
 using namespace std;
@@ -20,23 +25,40 @@ using namespace UIDGen;
 
 void help(char* prog);
 
+class Interrupted {};
+
+void signal_handler(int ns)
+{
+	throw Interrupted{};
+}
+
 int main(int argc, char* argv[])
 {
+	span args(argv,argc);
+
 	try {
 
-		cout << "UniqueID Generator" << endl;
+		cout << "* UniqueID Generator" << endl;
 
 		const char* out_iorfile = nullptr;
 		const char* ns_name = "uid";			// default name
 
-		for (int i=1; i<argc; i++) {
-			string arg{argv[i]};
-			if (arg == "-o")
-				out_iorfile = argv[++i];
-			else if (arg == "-n")
-				ns_name = argv[++i];
-			else if (arg == "-h")				// usage info
-				help(argv[0]);
+		bool get_iorfile = false;
+		bool get_nsname = false;
+		for ( const char* a : args.last(argc-1)) {
+			if (a == "-h"s)				// usage info
+				help(args[0]);
+			else if (a == "-o"s)
+				get_iorfile = true;
+			else if (a == "-n"s)
+				get_nsname = true;
+			else if (get_iorfile) {
+				out_iorfile = a;
+				get_iorfile = false;
+			} else if (get_nsname) {
+				ns_name = a;
+				get_nsname = false;
+			}
 		}
 		assert(ns_name != nullptr);
 
@@ -76,26 +98,26 @@ int main(int argc, char* argv[])
 		}
 
 		cout << "* Running event loop." << endl;
-		thread t{[&orbm]() { orbm.run(); }};
 
-		cout << "  Type <ENTER> to quit" << endl;
-		cin.get();
+		signal(SIGINT, signal_handler);
+		signal(SIGTERM, signal_handler);
 
-		// Clean-up IOR publications
-		cout << "\tUbinding name \"" << ns_name << "\"..." << flush;
+		try {
+			orbm.run();
+		} catch (const Interrupted&) {
+			cout << cursor_back() << "* Interrupted" << endl;
+		}
+
+		cout << "* Unbinding \"" << ns_name << "\"..." << flush;
 		NameServer{orbm}.unbind(ns_name);
 		cout << "OK" << endl;
+		orbm.shutdown();
 
 		if (out_iorfile != nullptr) {
-			cout << "\tRemoving file..." << flush;
+			cout << "* Removing file..." << flush;
 			unlink(out_iorfile); // remove ior file
 			cout << "OK" << endl;
 		}
-
-		cout << "* Shutting down orb... " << flush;
-		orbm.shutdown();
-		t.join();
-		cout << "OK" << endl;
 
 	} catch (const CORBA::SystemException &e) {
 		cerr << "CORBA exception: " << e << endl;

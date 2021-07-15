@@ -4,35 +4,27 @@
 		{
 			"path": ".",
 			"folder_exclude_patterns": ["build", ".cache"],
-			"file_exclude_patterns": ["*.sublime-workspace", "*C.h", "*S.h", "*GenS.cpp", "*C.cpp", "*.inl"]
+			"file_exclude_patterns": ["*.sublime-workspace",
+				"idl/*C.h", "idl/*S.h", "idl/*GenS.cpp", "idl/*C.cpp", "idl/*.inl",
+				"compile_commands.json"]
 		}
 	],
-	"settings": {
-		"SublimeLinter.linters.clang++.I":
-		[
-			"${project_path}/idl",
-			"${COLIBRY}/include",
-			"${ACE_ROOT}",
-			"${TAO_ROOT}",
-			"${TAO_ROOT}/orbsvcs"
-		]
-	},
 	"build_systems" : [
 		{
-			"name": "Make CS",
-			"cmd": ["make", "-C", "$project_path/build"],
-			"variants": [
-				{
-					"name": "Run UniqueID Server",
-					"shell_cmd": "make -C \"$project_path/build\" && \"$project_path/build/uniqueid\"",
-					"shell": true
-				},
-				{
-					"name": "Run Test Client",
-					"shell_cmd": "make -C \"$project_path/build\" && \"$project_path/build/uid_test\"",
-					"shell": true
-				}
-			]
+			"name": "Make UID",
+			"working_dir": "$project_path/build",
+			"cmd": ["make"]
+		},
+		{
+			"name": "Run UID Server",
+			"working_dir": "$project_path/build",
+			"shell_cmd": "make && uniqueid"
+		},
+		{
+			"name": "Run Test Client",
+			"working_dir": "$project_path/build",
+			"shell_cmd": "make && uid_test",
+			"shell": true
 		}
 	]
 }
