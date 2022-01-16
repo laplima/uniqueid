@@ -16,7 +16,7 @@ UniqueIDGenImpl::UniqueIDGenImpl () : bag_(1,10000), ss_{10, '0', '9'}
 	LOG(INFO) << "get: " << bag_ << endl;
 #endif
 
-	ID_t id;
+	ID_t id{};
 	try {
 		id = bag_.get();
 	} catch (const underflow_error&) {
@@ -76,7 +76,7 @@ bool SeqString::is_last()
 
 std::string SeqString::next()
 {
-	for (int i=ss_.size()-1; i>=0; --i) {
+	for (auto i=ss_.size()-1; i>=0; --i) {
 		++ss_[i];
 		if (ss_[i] <= last_)
 			return ss_;
