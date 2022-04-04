@@ -6,6 +6,7 @@
 #include <regex>
 #include <vector>
 #include <algorithm>
+#include <span>
 
 using namespace std;
 using namespace colibry;
@@ -29,7 +30,7 @@ public:
 	App(UIDGen::UniqueIDGen_ptr uid) : uid_{uid} {}
 	void help();
 	void run();
-	State state() const { return state_; }
+	[[nodiscard]] State state() const { return state_; }
 private:
 	UIDGen::UniqueIDGen_ptr uid_;
 	State state_ = State::STARTING;
@@ -58,19 +59,21 @@ int main(int argc, char* argv[])
 
 		ORBManager orbm{argc, argv};
 
+		span args(argv,argc);
+
 		const char* ns_name = nullptr;
 		const char* iorfile = nullptr;
 
-		for (int i=1; i<argc; ++i) {
-			string arg{argv[i]};
+		for (int i=1; i<args.size(); ++i) {
+			string arg{args[i]};
 			if (arg == "-n")
-				ns_name = argv[++i];
+				ns_name = args[++i];
 			else if (arg == "-f")
-				iorfile = argv[++i];
+				iorfile = args[++i];
 		}
 
 		if (ns_name == nullptr && iorfile == nullptr) {
-			cerr << "USAGE: " << argv[0] << " [-n <NAME> | -f <IORFILE>]" << endl;
+			cerr << "USAGE: " << args[0] << " [-n <NAME> | -f <IORFILE>]" << endl;
 			cout << "Using default name: \"" << DFLT_NAME << "\"" << endl;
 			ns_name = DFLT_NAME;
 		}

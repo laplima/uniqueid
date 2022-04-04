@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 		UniqueIDGenImpl uidgen_i;
 		cout << "OK" << endl;
 
-		UniqueIDGen_var uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
+		auto uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register object in the NS
 		try {
