@@ -1,8 +1,14 @@
-cmake_minimum_required(VERSION 3.14)
-project(uid_test)
+cmake_minimum_required(VERSION 3.20)
 
-add_executable(uid_test ${STUBS} uid_test_ns.cpp)
+project(uid_test)   # name of the executable
 
-target_link_libraries(uid_test ${LIBS})
+set(sources
+	${STUBS}
+	uid_test_ns.cpp)
 
-install(TARGETS uid_test RUNTIME DESTINATION bin)
+include("${MYMODULES_DIR}/taoidl.cmake")
+
+add_executable(${PROJECT_NAME} ${sources})
+target_compile_options(${PROJECT_NAME} PUBLIC ${FMT_CFLAGS_OTHER})
+target_link_libraries(${PROJECT_NAME}
+	${mylibs} ${FMT_LIBRARIES} ${FMT_LDFLAGS})

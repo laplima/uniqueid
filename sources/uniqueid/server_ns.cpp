@@ -17,7 +17,7 @@
 #include <colibry/ORBManager.h>
 #include <colibry/TextTools.h>
 #include <sys/socket.h>
-#include "UniqueIDGenImpl.h"
+#include "UniqueIDGenI.h"
 
 using namespace std;
 using namespace colibry;
