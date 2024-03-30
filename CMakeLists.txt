@@ -16,9 +16,7 @@ set(SUBPROJECTS
 	uniqueid
 	uid_test)
 
-# pkg-config
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FMT REQUIRED fmt)
+find_package(fmt REQUIRED)
 
 # Generate ${mylibs}
 
@@ -76,16 +74,15 @@ include_directories(
     "$ENV{ACE_ROOT}"
     "$ENV{TAO_ROOT}"
     "$ENV{TAO_ROOT}/orbsvcs"
-    "$ENV{COLIBRY}/include"
-    ${FMT_INCLUDE_DIRS})
+    "$ENV{COLIBRY}/include")
 
 # PLATFORM-DEPENDENT COMPILER OPTIONS
 
 add_compile_options(-Wno-deprecated-declarations)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-		add_compile_options(-fdelayed-template-parsing -m64)
+	add_compile_options(-fdelayed-template-parsing -m64)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-		include_directories("/opt/local/include")
+	include_directories("/opt/local/include")
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")

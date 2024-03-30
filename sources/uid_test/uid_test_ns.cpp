@@ -20,6 +20,7 @@ public:
 	void clear() { ids.clear(); }
 	auto begin() { return ids.begin(); }
 	auto end() { return ids.end(); }
+	bool empty() const { return ids.empty(); }
 	friend ostream& operator<<(ostream& os, const IDBag& idg);
 };
 
@@ -182,8 +183,10 @@ void App::execute()
 			cout << "   => \"" << us << "\"" << endl; }
 			break;
 		case 'x':
-			cout << "\tReturning ids: ";
-			return_ids();
+			if (!idg_.empty()) {
+				cout << "\tReturning ids: ";
+				return_ids();
+			}
 			state_ = State::QUITTING;
 			break;
 		default:
