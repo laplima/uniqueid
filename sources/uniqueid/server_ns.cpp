@@ -5,7 +5,9 @@
 //
 
 #include <exception>
-#include <iostream>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <spdlog/spdlog.h>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -34,11 +36,14 @@ void signal_handler(int ns)
 
 int main(int argc, char* argv[])
 {
+	// enable debug level messages
+	// spdlog::set_level(spdlog::level::debug);
+
 	span args(argv,argc);
 
 	try {
 
-		cout << "* UniqueID Generator" << endl;
+		fmt::println("* UniqueID Generator");
 
 		const char* out_iorfile = nullptr;
 		const char* ns_name = "uid";			// default name
@@ -66,38 +71,41 @@ int main(int argc, char* argv[])
 		orbm.activate_rootpoa();
 
 		// Create the servant
-		cout << "* Creating servant..." << flush;
+		fmt::print("* Creating servant...");
+		fflush(stdout);
 		UniqueIDGenImpl uidgen_i;
-		cout << "OK" << endl;
+		fmt::println("OK");
 
 		auto uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register object in the NS
 		try {
-			cout << "* Registering in the NS (\"" << ns_name << "\")..." << flush;
+			fmt::print("* Registering in the NS (\"{}\")...", ns_name);
+			fflush(stdout);
 			NameServer ns{orbm};
 			ns.bind(ns_name,uidgen.in());
-			cout << "OK" << endl;
+			fmt::println("OK");
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
-			cerr << "NAME ALREADY BOUND!" << endl;
+			spdlog::error("NAME ALREADY BOUND!\n");
 			if (out_iorfile == nullptr)
 				throw;
 		} catch (CORBA::ORB::InvalidName&) {
-			cerr << " NS is not running." << endl;
+			spdlog::error(" NS is not running.\n");
 			throw;
 		} catch (const CORBA::Exception&) {
-			cerr << "CORBA exception while connecting to NS" << endl;
+			spdlog::error( "CORBA exception while connecting to NS\n");
 			throw;
 		}
 
 		if (out_iorfile != nullptr) {
 			// Generating + saving IOR
-			cout << "* Saving reference (\"" << out_iorfile << "\")..." << flush;
+			fmt::println("* Saving reference (\"{}\")...", out_iorfile);
+			fflush(stdout);
 			orbm.save_ior(out_iorfile, uidgen.in());
-			cout << "OK" << endl;
+			fmt::println("OK");
 		}
 
-		cout << "* Running event loop." << endl;
+		fmt::println("* Running event loop.");
 
 		signal(SIGINT, signal_handler);
 		signal(SIGTERM, signal_handler);
@@ -105,27 +113,30 @@ int main(int argc, char* argv[])
 		try {
 			orbm.run();
 		} catch (const Interrupted&) {
-			cout << cursor_back() << "* Interrupted" << endl;
+			fmt::print("{}", cursor_back());
+			spdlog::info("Interrupted");
 		}
 
-		cout << "* Unbinding \"" << ns_name << "\"..." << flush;
+		fmt::print("* Unbinding \"{}\"...", ns_name);
+		fflush(stdout);
 		NameServer{orbm}.unbind(ns_name);
-		cout << "OK" << endl;
+		fmt::println("OK");
 		orbm.shutdown();
 
 		if (out_iorfile != nullptr) {
-			cout << "* Removing file..." << flush;
+			fmt::println("* Removing file...");
+			fflush(stdout);
 			unlink(out_iorfile); // remove ior file
-			cout << "OK" << endl;
+			fmt::println("OK");
 		}
 
 	} catch (const CORBA::SystemException &e) {
-		cerr << "CORBA exception: " << e << endl;
+		spdlog::error("CORBA exception: {}", fmt::streamed(e));
 	}
 }
 
 void help(char* prog)
 {
-	cerr << "USAGE: " << prog << " -n <name> [-o <ior_file>] [-h]" << endl;
+	spdlog::error( "USAGE: {} -n <name> [-o <ior_file>] [-h]\n", prog);
 	exit(1);
 }

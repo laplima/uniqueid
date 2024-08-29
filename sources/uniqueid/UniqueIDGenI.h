@@ -31,7 +31,7 @@ namespace UIDGen {
 		::UIDGen::ID_t getuid () override;
 		void putback (::UIDGen::ID_t id) override;
 		char *getustr() override;
-		void reset() override;
+		bool reset(const char* passwd) override;
 
 	protected:
 

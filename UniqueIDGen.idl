@@ -3,15 +3,15 @@
 
 module UIDGen {
 
-    typedef long ID_t;
+    typedef long long ID_t;
 
     exception InvalidID {};
 
     interface UniqueIDGen {
         ID_t getuid();
         void putback(in ID_t id) raises (InvalidID);
-        void reset();
-        string getustr();		// get unique string
+        boolean reset(in string passwd);
+        string getustr();		// generates unique string
     };
 
 };

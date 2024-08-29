@@ -1,4 +1,7 @@
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include <UniqueIDGenC.h>
 #include <colibry/ORBManager.h>
 #include <colibry/NameServer.h>
@@ -39,7 +42,7 @@ private:
 protected:
 	void execute();
 	void return_ids();
-	string input(const string& prompt);
+	static string input(const string& prompt);
 };
 
 // helpers
@@ -55,8 +58,7 @@ int main(int argc, char* argv[])
 
 	try {
 
-		cout << "UniqueID Test client" << endl;
-		cout << "(C) laplima" << endl;
+		fmt::println("* UniqueID Test client");
 
 		ORBManager orbm{argc, argv};
 
@@ -74,8 +76,8 @@ int main(int argc, char* argv[])
 		}
 
 		if (ns_name == nullptr && iorfile == nullptr) {
-			cerr << "USAGE: " << args[0] << " [-n <NAME> | -f <IORFILE>]" << endl;
-			cout << "Using default name: \"" << DFLT_NAME << "\"" << endl;
+			fmt::print(stderr,"\nUSAGE: {} [-n <NAME> | -f <IORFILE>]\n\n", args[0]);
+			fmt::println("Using default name: \"{}\"", DFLT_NAME);
 			ns_name = DFLT_NAME;
 		}
 
@@ -90,7 +92,7 @@ int main(int argc, char* argv[])
 			uid = orbm.string_to_object<UIDGen::UniqueIDGen>(string{"file://"} + iorfile);
 
 		if (CORBA::is_nil(uid.ptr())) {
-			cerr << "CORBA object is nil" << endl;
+			spdlog::error("CORBA object is nil");
 			return 2;
 		}
 
@@ -100,11 +102,12 @@ int main(int argc, char* argv[])
 		app.help();
 		app.run();
 
-		cout << "Terminating" << flush;
-		cout << endl;
+		fmt::println("Terminating");
+		fflush(stdout);
+		fmt::print("\n");
 
 	} catch (CORBA::Exception& e) {
-		cerr << "CORBA exception: " << e << endl;
+		spdlog::error("CORBA exception: {}", fmt::streamed(e));
 	}
 }
 
@@ -114,19 +117,21 @@ int main(int argc, char* argv[])
 
 void App::help()
 {
-	cout << "g = get" << endl
-		 << "p <N> = put back" << endl
-		 << "u = getustr" << endl
-		 << "r = reset" << endl
-		 << "h = help" << endl
-		 << "x = exit + return ids" << endl
-		 << "<ENTER> = exit" << endl << endl;
+	fmt::print("\n");
+	fmt::println(R"(g = get
+p <N> = put back
+u = getustr
+r = reset
+h = help
+x = exit + return ids
+<ENTER> = exit)");
+	fmt::print("\n");
 }
 
 string App::input(const string& prompt)
 {
 	string rd;
-	cout << "> ";
+	fmt::print("{}", prompt);
 	getline(cin, rd);
 	return rd;
 }
@@ -154,53 +159,59 @@ void App::execute()
 			break;
 		case 'g': {
 			auto v = uid_->getuid();
-			cout << "    => [" << v << "]" << endl;
+			fmt::println("    => [{}]", v);
 			idg_.add(v);
-			cout << "    " << idg_ << endl; }
+			fmt::println("    {}", fmt::streamed(idg_)); }
 			break;
 		case 'p':
 			if (tks.size() < 2)
-				cerr << "    missing id" << endl;
+				fmt::println(stderr, "    missing id");
 			else {
 				try {
 					UIDGen::ID_t v = stoi(tks[1]);
 					uid_->putback(v);
-					cout << "    " << v << " =>" << endl;
+					fmt::println("    {} =>", v);
 					idg_.remove(v);
 				} catch (const UIDGen::InvalidID&) {
-					cerr << "    Invalid ID" << endl;
+					fmt::println(stderr, "    Invalid ID");
 				}
-				cout << "    " << idg_ << endl;
+				fmt::println("    {}", fmt::streamed(idg_));
 			}
 			break;
 		case 'r':
-			uid_->reset();
-			idg_.clear();
-			cout << "    uid reset" << endl;
+			if (tks.size() <2)
+				fmt::println(stderr, "    missing password");
+			else {
+				if (uid_->reset(tks[1].c_str())) {
+					idg_.clear();
+					fmt::println("    uid reset");
+				} else
+				fmt::println(stderr, "    wrong password");
+			}
 			break;
 		case 'u': {
 			string us = uid_->getustr();
-			cout << "   => \"" << us << "\"" << endl; }
+			fmt::println("   => \"{}\"", us); }
 			break;
 		case 'x':
 			if (!idg_.empty()) {
-				cout << "\tReturning ids: ";
+				fmt::print("\tReturning ids: ");
 				return_ids();
 			}
 			state_ = State::QUITTING;
 			break;
 		default:
-			cout << "   unknown command" << endl;
+			fmt::println(stderr, "   unknown command");
 	}
 }
 
 void App::return_ids()
 {
 	std::for_each(idg_.begin(), idg_.end(), [this](auto& id) {
-		cout << id << " ";
+		fmt::print("{} ", id);
 		this->uid_->putback(id);
 	});
-	cout << endl;
+	fmt::print("\n");
 	idg_.clear();
 }
 
