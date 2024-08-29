@@ -80,7 +80,7 @@ include_directories(
 
 add_compile_options(-Wno-deprecated-declarations)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	add_compile_options(-fdelayed-template-parsing -m64)
+	add_compile_options(-m64)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	include_directories("/opt/local/include")
 endif()
