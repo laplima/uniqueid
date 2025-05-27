@@ -3,6 +3,7 @@
 
 #include "UniqueIDGenS.h"
 #include <colibry/Bag.h>
+#include <cstddef>
 #include <string>
 
 // ------------------------------------------------------
@@ -12,11 +13,18 @@ public:
 	SeqString(std::size_t sz, char first_char, char last_char);
 	void reset();
 	bool is_last();
-	std::string next();
+	virtual std::string next();
 	operator std::string() const { return ss_; }
-private:
+protected:
 	std::string ss_;
 	char first_, last_;
+};
+
+// hex sequence
+class HexSeq : public SeqString {
+public:
+	HexSeq(std::size_t sz);
+	std::string next() override;
 };
 
 // ------------------------------------------------------
@@ -37,7 +45,7 @@ namespace UIDGen {
 
 		colibry::Bag<ID_t> bag_;
 		const std::function<void()> notify_shutdown_;
-		SeqString ss_;
+		HexSeq hseq_;
 	};
 
 };

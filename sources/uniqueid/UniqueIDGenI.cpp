@@ -1,6 +1,7 @@
 #include "UniqueIDGenI.h"
 #include "UniqueIDGenC.h"
 #include <algorithm>
+#include <cstddef>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <spdlog/spdlog.h>
@@ -15,7 +16,7 @@ using namespace UIDGen;
 constexpr ID_t maxid = 10'000'000'000;
 constexpr int uslen = 16;				// unique string length
 
-UniqueIDGenImpl::UniqueIDGenImpl () : bag_{1, maxid}, ss_{uslen, '0', '9'}
+UniqueIDGenImpl::UniqueIDGenImpl () : bag_{1, maxid}, hseq_{uslen}
 {
 }
 
@@ -45,8 +46,8 @@ void UniqueIDGenImpl::putback (::UIDGen::ID_t id)
 
 char *UniqueIDGenImpl::getustr()
 {
-	auto ss = CORBA::string_dup(static_cast<string>(ss_).c_str());
-	ss_.next();
+	auto ss = CORBA::string_dup(static_cast<string>(hseq_).c_str());
+	hseq_.next();
 	return ss;
 }
 
@@ -54,7 +55,7 @@ bool UniqueIDGenImpl::reset(const char* passwd)
 {
 	if (string_view{passwd} == "uid"s) {
 		bag_.reset();
-		ss_.reset();
+		hseq_.reset();
 		spdlog::debug("reset: {}", fmt::streamed(bag_));
 		return true;
 	}
@@ -86,6 +87,29 @@ std::string SeqString::next()
 {
 	for (auto i=ss_.size()-1; i>=0; --i) {
 		++ss_[i];
+		if (ss_[i] <= last_)
+			return ss_;
+		ss_[i] = first_;
+	}
+	if (is_last())
+		reset();
+	return ss_;
+}
+
+// ------------------------------------------------------
+
+HexSeq::HexSeq(std::size_t sz)
+	: SeqString(sz, '0', 'F')
+{
+}
+
+std::string HexSeq::next()
+{
+	for (auto i=ss_.size()-1; i>=0; --i) {
+		if (ss_[i] == '9')
+			ss_[i] = 'A';
+		else
+			++ss_[i];
 		if (ss_[i] <= last_)
 			return ss_;
 		ss_[i] = first_;
