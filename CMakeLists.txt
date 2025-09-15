@@ -8,7 +8,7 @@ project(uniqueid)
 set(IDL UniqueIDGen.idl)			# IDL files
 set(IDL_DIR .)					# IDL files location
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_BUILD_TYPE Debug)
 
 set(SRC_DIR "sources")
@@ -16,7 +16,8 @@ set(SUBPROJECTS
 	uniqueid
 	uid_test)
 
-find_package(fmt REQUIRED)
+# find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
 # Generate ${mylibs}
 
@@ -82,7 +83,7 @@ add_compile_options(-Wno-deprecated-declarations)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	add_compile_options(-m64)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	include_directories("/opt/local/include")
+	include_directories("/opt/local/include" $ENV{HOME}/Platforms/spdlog/include)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")

@@ -1,5 +1,4 @@
-#include <fmt/format.h>
-#include <fmt/ostream.h>
+#include <print>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <UniqueIDGenC.h>
@@ -10,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <span>
+#include "../printable.h"
 
 using namespace std;
 using namespace colibry;
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 
 	try {
 
-		fmt::println("* UniqueID Test client");
+		println("* UniqueID Test client");
 
 		ORBManager orbm{argc, argv};
 
@@ -76,8 +76,8 @@ int main(int argc, char* argv[])
 		}
 
 		if (ns_name == nullptr && iorfile == nullptr) {
-			fmt::print(stderr,"\nUSAGE: {} [-n <NAME> | -f <IORFILE>]\n\n", args[0]);
-			fmt::println("Using default name: \"{}\"", DFLT_NAME);
+			print(stderr,"\nUSAGE: {} [-n <NAME> | -f <IORFILE>]\n\n", args[0]);
+			println("Using default name: \"{}\"", DFLT_NAME);
 			ns_name = DFLT_NAME;
 		}
 
@@ -102,12 +102,12 @@ int main(int argc, char* argv[])
 		app.help();
 		app.run();
 
-		fmt::println("Terminating");
+		println("Terminating");
 		fflush(stdout);
-		fmt::print("\n");
+		print("\n");
 
 	} catch (CORBA::Exception& e) {
-		spdlog::error("CORBA exception: {}", fmt::streamed(e));
+		spdlog::error("CORBA exception: {}", streamed(e));
 	}
 }
 
@@ -117,21 +117,21 @@ int main(int argc, char* argv[])
 
 void App::help()
 {
-	fmt::print("\n");
-	fmt::println(R"(g = get
+	print("\n");
+	println(R"(g = get
 p <N> = put back
 u = getustr
 r = reset
 h = help
 x = exit + return ids
 <ENTER> = exit)");
-	fmt::print("\n");
+	print("\n");
 }
 
 string App::input(const string& prompt)
 {
 	string rd;
-	fmt::print("{}", prompt);
+	print("{}", prompt);
 	getline(cin, rd);
 	return rd;
 }
@@ -159,59 +159,59 @@ void App::execute()
 			break;
 		case 'g': {
 			auto v = uid_->getuid();
-			fmt::println("    => [{}]", v);
+			println("    => [{}]", v);
 			idg_.add(v);
-			fmt::println("    {}", fmt::streamed(idg_)); }
+			println("    {}", streamed(idg_)); }
 			break;
 		case 'p':
 			if (tks.size() < 2)
-				fmt::println(stderr, "    missing id");
+				println(stderr, "    missing id");
 			else {
 				try {
 					UIDGen::ID_t v = stoi(tks[1]);
 					uid_->putback(v);
-					fmt::println("    {} =>", v);
+					println("    {} =>", v);
 					idg_.remove(v);
 				} catch (const UIDGen::InvalidID&) {
-					fmt::println(stderr, "    Invalid ID");
+					println(stderr, "    Invalid ID");
 				}
-				fmt::println("    {}", fmt::streamed(idg_));
+				println("    {}", streamed(idg_));
 			}
 			break;
 		case 'r':
 			if (tks.size() <2)
-				fmt::println(stderr, "    missing password");
+				println(stderr, "    missing password");
 			else {
 				if (uid_->reset(tks[1].c_str())) {
 					idg_.clear();
-					fmt::println("    uid reset");
+					println("    uid reset");
 				} else
-				fmt::println(stderr, "    wrong password");
+				println(stderr, "    wrong password");
 			}
 			break;
 		case 'u': {
 			string us = uid_->getustr();
-			fmt::println("   => \"{}\"", us); }
+			println("   => \"{}\"", us); }
 			break;
 		case 'x':
 			if (!idg_.empty()) {
-				fmt::print("\tReturning ids: ");
+				print("\tReturning ids: ");
 				return_ids();
 			}
 			state_ = State::QUITTING;
 			break;
 		default:
-			fmt::println(stderr, "   unknown command");
+			println(stderr, "   unknown command");
 	}
 }
 
 void App::return_ids()
 {
 	std::for_each(idg_.begin(), idg_.end(), [this](auto& id) {
-		fmt::print("{} ", id);
+		print("{} ", id);
 		this->uid_->putback(id);
 	});
-	fmt::print("\n");
+	print("\n");
 	idg_.clear();
 }
 

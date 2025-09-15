@@ -5,8 +5,8 @@
 //
 
 #include <exception>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
+#include <print>
+#include <format>
 #include <spdlog/spdlog.h>
 #include <cstdlib>
 #include <cstring>
@@ -19,6 +19,7 @@
 #include <colibry/ORBManager.h>
 #include <colibry/TextTools.h>
 #include <sys/socket.h>
+#include "../printable.h"
 #include "UniqueIDGenI.h"
 
 using namespace std;
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
 
 	try {
 
-		fmt::println("* UniqueID Generator");
+		println("* UniqueID Generator");
 
 		const char* out_iorfile = nullptr;
 		const char* ns_name = "uid";			// default name
@@ -71,20 +72,20 @@ int main(int argc, char* argv[])
 		orbm.activate_rootpoa();
 
 		// Create the servant
-		fmt::print("* Creating servant...");
+		print("* Creating servant...");
 		fflush(stdout);
 		UniqueIDGenImpl uidgen_i;
-		fmt::println("OK");
+		println("OK");
 
 		auto uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
 
 		// Register object in the NS
 		try {
-			fmt::print("* Registering in the NS (\"{}\")...", ns_name);
+			print("* Registering in the NS (\"{}\")...", ns_name);
 			fflush(stdout);
 			NameServer ns{orbm};
 			ns.bind(ns_name,uidgen.in());
-			fmt::println("OK");
+			println("OK");
 		} catch (CosNaming::NamingContext::AlreadyBound&) {
 			spdlog::error("NAME ALREADY BOUND!\n");
 			if (out_iorfile == nullptr)
@@ -99,13 +100,13 @@ int main(int argc, char* argv[])
 
 		if (out_iorfile != nullptr) {
 			// Generating + saving IOR
-			fmt::println("* Saving reference (\"{}\")...", out_iorfile);
+			println("* Saving reference (\"{}\")...", out_iorfile);
 			fflush(stdout);
 			orbm.save_ior(out_iorfile, uidgen.in());
-			fmt::println("OK");
+			println("OK");
 		}
 
-		fmt::println("* Running event loop.");
+		println("* Running event loop.");
 
 		signal(SIGINT, signal_handler);
 		signal(SIGTERM, signal_handler);
@@ -113,25 +114,25 @@ int main(int argc, char* argv[])
 		try {
 			orbm.run();
 		} catch (const Interrupted&) {
-			fmt::print("{}", cursor_back());
+			print("{}", cursor_back());
 			spdlog::info("Interrupted");
 		}
 
-		fmt::print("* Unbinding \"{}\"...", ns_name);
+		print("* Unbinding \"{}\"...", ns_name);
 		fflush(stdout);
 		NameServer{orbm}.unbind(ns_name);
-		fmt::println("OK");
+		println("OK");
 		orbm.shutdown();
 
 		if (out_iorfile != nullptr) {
-			fmt::println("* Removing file...");
+			println("* Removing file...");
 			fflush(stdout);
 			unlink(out_iorfile); // remove ior file
-			fmt::println("OK");
+			println("OK");
 		}
 
 	} catch (const CORBA::SystemException &e) {
-		spdlog::error("CORBA exception: {}", fmt::streamed(e));
+		spdlog::error("CORBA exception: {}", streamed(e));
 	}
 }
 

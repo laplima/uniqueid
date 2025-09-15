@@ -2,12 +2,12 @@
 #include "UniqueIDGenC.h"
 #include <algorithm>
 #include <cstddef>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
+#include <print>
 #include <spdlog/spdlog.h>
-#include <colibry/Logger.h>
+// #include <colibry/Logger.h>
 #include <string_view>
 #include <ranges>
+#include "../printable.h"
 
 using namespace std;
 using namespace colibry;
@@ -22,7 +22,7 @@ UniqueIDGenImpl::UniqueIDGenImpl () : bag_{1, maxid}, hseq_{uslen}
 
 ::UIDGen::ID_t UniqueIDGenImpl::getuid ()
 {
-	spdlog::debug("get: {}", fmt::streamed(bag_));
+	spdlog::debug("get: {}", streamed(bag_));
 
 	ID_t id{};
 	try {
@@ -37,7 +37,7 @@ void UniqueIDGenImpl::putback (::UIDGen::ID_t id)
 {
 	try {
 		bag_.put_back(id);
-		spdlog::debug("putback: {}", fmt::streamed(bag_));
+		spdlog::debug("putback: {}", streamed(bag_));
    } catch (...) {
 		spdlog::error("Put back id failed.");
 		throw InvalidID{};
@@ -56,7 +56,7 @@ bool UniqueIDGenImpl::reset(const char* passwd)
 	if (string_view{passwd} == "uid"s) {
 		bag_.reset();
 		hseq_.reset();
-		spdlog::debug("reset: {}", fmt::streamed(bag_));
+		spdlog::debug("reset: {}", streamed(bag_));
 		return true;
 	}
 	return false;
