@@ -4,9 +4,10 @@
 // All rights reserved.
 //
 
-#include <exception>
+// #include <exception>
 #include <print>
 #include <format>
+#include <iostream>
 #include <spdlog/spdlog.h>
 #include <cstdlib>
 #include <cstring>
@@ -20,11 +21,18 @@
 #include <colibry/TextTools.h>
 #include <sys/socket.h>
 #include "../printable.h"
-#include "UniqueIDGenI.h"
+#include "UID.h"
 
 using namespace std;
 using namespace colibry;
 using namespace UIDGen;
+
+template <typename... T>
+void fprint(std::format_string<T...> fmt, T&&... args)
+{
+	print(fmt, std::forward<T>(args)...);
+	fflush(stdout);
+}
 
 void help(char* prog);
 
@@ -72,17 +80,15 @@ int main(int argc, char* argv[])
 		orbm.activate_rootpoa();
 
 		// Create the servant
-		print("* Creating servant...");
-		fflush(stdout);
-		UniqueIDGenImpl uidgen_i;
+		fprint("* Creating servant...");
+		UID uidgen_i;
 		println("OK");
 
-		auto uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i);
+		auto uidgen = orbm.activate_object<UniqueIDGen>(uidgen_i.in());
 
 		// Register object in the NS
 		try {
-			print("* Registering in the NS (\"{}\")...", ns_name);
-			fflush(stdout);
+			fprint("* Registering in the NS (\"{}\")...", ns_name);
 			NameServer ns{orbm};
 			ns.bind(ns_name,uidgen.in());
 			println("OK");
@@ -100,8 +106,7 @@ int main(int argc, char* argv[])
 
 		if (out_iorfile != nullptr) {
 			// Generating + saving IOR
-			println("* Saving reference (\"{}\")...", out_iorfile);
-			fflush(stdout);
+			fprint("* Saving reference (\"{}\")...\n", out_iorfile);
 			orbm.save_ior(out_iorfile, uidgen.in());
 			println("OK");
 		}

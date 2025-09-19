@@ -6,35 +6,14 @@
 #include <cstddef>
 #include <string>
 
-// ------------------------------------------------------
-
-class SeqString {
-public:
-	SeqString(std::size_t sz, char first_char, char last_char);
-	void reset();
-	bool is_last();
-	virtual std::string next();
-	operator std::string() const { return ss_; }
-protected:
-	std::string ss_;
-	char first_, last_;
-};
-
-// hex sequence
-class HexSeq : public SeqString {
-public:
-	HexSeq(std::size_t sz);
-	std::string next() override;
-};
-
-// ------------------------------------------------------
+class UID;
 
 namespace UIDGen {
 
-	class  UniqueIDGenImpl : public virtual POA_UIDGen::UniqueIDGen {
+	class  UniqueIDGen_i : public virtual POA_UIDGen::UniqueIDGen {
 	public:
 
-		UniqueIDGenImpl();
+		UniqueIDGen_i(UID* uid) : uid_{uid} {}
 
 		::UIDGen::ID_t getuid () override;
 		void putback (::UIDGen::ID_t id) override;
@@ -43,9 +22,7 @@ namespace UIDGen {
 
 	protected:
 
-		colibry::Bag<ID_t> bag_;
-		const std::function<void()> notify_shutdown_;
-		HexSeq hseq_;
+		UID* uid_;
 	};
 
 };

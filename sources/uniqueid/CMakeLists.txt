@@ -5,6 +5,9 @@ project(uniqueid)   # name of the executable
 set(sources
 	${SKELETONS}
 	${IDL_IMPL}
+	SeqString.cpp
+	HexSeq.cpp
+	UID.cpp
 	server_ns.cpp)
 
 include("${MYMODULES_DIR}/taoidl.cmake")

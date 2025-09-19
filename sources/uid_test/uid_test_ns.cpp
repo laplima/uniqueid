@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <print>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -29,10 +30,10 @@ public:
 
 class App {
 public:
-	enum class State { STARTING, RUNNING, QUITTING };
-public:
+	enum class State : uint8_t { STARTING, RUNNING, QUITTING };
+
 	App(UIDGen::UniqueIDGen_ptr uid) : uid_{uid} {}
-	void help();
+	static void help();
 	void run();
 	[[nodiscard]] State state() const { return state_; }
 private:
@@ -99,7 +100,7 @@ int main(int argc, char* argv[])
 		// run application
 
 		App app{uid.in()};
-		app.help();
+		App::help();
 		app.run();
 
 		println("Terminating");
@@ -208,8 +209,12 @@ void App::execute()
 void App::return_ids()
 {
 	std::for_each(idg_.begin(), idg_.end(), [this](auto& id) {
-		print("{} ", id);
-		this->uid_->putback(id);
+		try {
+			this->uid_->putback(id);
+			print("{} ", id);
+		} catch (const UIDGen::InvalidID& e) {
+			print("[{}] ", id);
+		}
 	});
 	print("\n");
 	idg_.clear();
@@ -221,7 +226,9 @@ vector<string> split(const string& input)
 {
 	regex re{"\\s+"};
 	sregex_token_iterator
-		first{input.begin(), input.end(), re, -1}, // -1 performns splitting
+		 first{input.begin(), input.end(), re, -1};
+	sregex_token_iterator
+		 // -1 performns splitting
 		last;
 	return {first, last};
 }
