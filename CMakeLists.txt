@@ -1,11 +1,11 @@
 # ACETAO CMake
 # (C) 2023 Luiz Lima Jr. All rights reserved.
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.30)
 
 project(uniqueid)
 
-set(IDL UniqueIDGen.idl)			# IDL files
+set(IDL UniqueIDGen.idl)
 set(IDL_DIR .)					# IDL files location
 
 set(CMAKE_CXX_STANDARD 26)
@@ -16,7 +16,6 @@ set(SUBPROJECTS
 	uniqueid
 	uid_test)
 
-# find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 
 # Generate ${mylibs}
@@ -55,18 +54,36 @@ set(SKELETONS)
 set(STUBS)
 foreach(idl ${IDL})
 	get_filename_component(idl ${idl} NAME_WE)
-	set(SKELETONS ${SKELETONS}
+	list(APPEND SKELETONS
 		${STUBS_DIR}/${idl}S.cpp
 		${STUBS_DIR}/${idl}C.cpp)
-	set(STUBS ${STUBS}
+	list(APPEND STUBS
 		${STUBS_DIR}/${idl}C.cpp)
-	set(IDL_OUTPUT ${IDL_OUTPUT}
+	list(APPEND IDL_OUTPUT
 		${STUBS_DIR}/${idl}C.h
 		${STUBS_DIR}/${idl}C.inl
 		${STUBS_DIR}/${idl}S.h)
-	set(IDL_IMPL ${IDL_IMPL} ${idl}I.cpp)
+	list(APPEND IDL_IMPL ${idl}I.cpp)
 endforeach(idl)
-set(IDL_OUTPUT ${IDL_OUTPUT} ${SKELETONS})
+list(APPEND IDL_OUTPUT ${SKELETONS})
+
+# tao_idl custom command
+
+set(idls_)
+foreach(idl ${IDL})
+	list(APPEND idls_ ${IDL_DIR}/${idl})
+endforeach(idl)
+
+add_custom_command(
+	OUTPUT ${IDL_OUTPUT}
+	DEPENDS ${idls_}
+	COMMAND tao_idl
+	ARGS ${idls_} -o "${STUBS_DIR}"
+	COMMENT "Generating stubs + skeletons"
+	WORKING_DIRECTORY ${IDL_DIR}
+	VERBATIM)
+
+add_custom_target(${CMAKE_PROJECT_NAME}_stubs DEPENDS ${IDL_OUTPUT})
 
 # INCLUDES
 
@@ -87,7 +104,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-set(MYMODULES_DIR "${PROJECT_SOURCE_DIR}/cmake")
+# set(MYMODULES_DIR "${PROJECT_SOURCE_DIR}/cmake")
 
 # Subprojects
 foreach(proj ${SUBPROJECTS})
