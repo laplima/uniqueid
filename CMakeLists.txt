@@ -17,6 +17,7 @@ set(SUBPROJECTS
 	uid_test)
 
 find_package(spdlog REQUIRED)
+find_package(colibry REQUIRED)
 
 # Generate ${mylibs}
 
@@ -25,8 +26,7 @@ set(libs
 	TAO_PortableServer
 	TAO_AnyTypeCode
 	TAO_CosNaming
-	TAO_IORTable
-	colibry_static)
+	TAO_IORTable)
 
 # Platform-dependent additional libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -39,7 +39,7 @@ set(mylibs)
 foreach(lib_ ${libs})
 	set(alib_ ${lib}-NOTFOUND)
 	find_library(alib_ ${lib_} PATHS
-		"$ENV{ACE_ROOT}/lib" "$ENV{COLIBRY}/lib" "/opt/local/lib")
+		"$ENV{ACE_ROOT}/lib" "/opt/local/lib")
 	set(mylibs ${mylibs} ${alib_})
 endforeach(lib_)
 
@@ -91,8 +91,7 @@ include_directories(
     "${STUBS_DIR}"
     "$ENV{ACE_ROOT}"
     "$ENV{TAO_ROOT}"
-    "$ENV{TAO_ROOT}/orbsvcs"
-    "$ENV{COLIBRY}/include")
+    "$ENV{TAO_ROOT}/orbsvcs")
 
 # PLATFORM-DEPENDENT COMPILER OPTIONS
 
@@ -100,7 +99,7 @@ add_compile_options(-Wno-deprecated-declarations)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	add_compile_options(-m64)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	include_directories("/opt/local/include" $ENV{HOME}/Platforms/spdlog/include)
+	include_directories("/opt/local/include" "$ENV{HOME}/Platforms/spdlog/include")
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
